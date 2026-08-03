@@ -1,0 +1,188 @@
+package com.neueda.tms.service;
+
+import com.neueda.tms.dto.AlertDTO;
+import com.neueda.tms.dto.AuditTrailDTO;
+import com.neueda.tms.dto.PageResponse;
+import com.neueda.tms.model.*;
+import com.neueda.tms.repository.AlertAuditTrailRepository;
+import com.neueda.tms.repository.AlertRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.*;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class AlertService {
+
+    private final AlertRepository alertRepository;
+    private final AlertAuditTrailRepository auditTrailRepository;
+    private final AuditTrailService auditTrailService;
+
+    @Transactional(readOnly = true)
+    public PageResponse<AlertDTO.Response> searchAlerts(
+            String status, String severity, LocalDateTime fromDate, LocalDateTime toDate,
+            String search, int page, int size, String sortBy, String sortDir) {
+
+        Alert.AlertStatus statusEnum = status != null && !status.isBlank()
+                ? Alert.AlertStatus.valueOf(status.toUpperCase()) : null;
+        Alert.AlertSeverity severityEnum = severity != null && !severity.isBlank()
+                ? Alert.AlertSeverity.valueOf(severity.toUpperCase()) : null;
+
+        Sort sort = sortDir.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Page<Alert> result = alertRepository.searchAlerts(
+                statusEnum, severityEnum, fromDate, toDate, search, pageable);
+
+        return PageResponse.<AlertDTO.Response>builder()
+                .content(result.getContent().stream().map(this::toResponse).toList())
+                .pageNumber(result.getNumber())
+                .pageSize(result.getSize())
+                .totalElements(result.getTotalElements())
+                .totalPages(result.getTotalPages())
+                .first(result.isFirst())
+                .last(result.isLast())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public AlertDTO.Response getAlert(Long id) {
+        Alert alert = findAlert(id);
+        return toResponse(alert);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AuditTrailDTO> getAuditTrail(Long alertId) {
+        return auditTrailRepository.findByAlertIdOrderByCreatedAtAsc(alertId)
+                .stream().map(this::toAuditDto).toList();
+    }
+
+    @Transactional
+    public AlertDTO.Response forwardAlert(Long id, AlertDTO.ActionRequest request, String operator) {
+        Alert alert = findAlert(id);
+        assertStatus(alert, Alert.AlertStatus.OPEN, "Can only forward OPEN alerts");
+
+        alert.setStatus(Alert.AlertStatus.FORWARDED);
+        alert.setAssignedTo(request.getAssignedTo() != null ? request.getAssignedTo() : "Investigation Team");
+        alert.setUpdatedAt(LocalDateTime.now());
+        Alert saved = alertRepository.save(alert);
+
+        auditTrailService.recordAction(saved, AlertAuditTrail.AuditAction.FORWARDED, operator,
+                request.getNotes() != null ? request.getNotes() : "Alert forwarded to investigation team.");
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public AlertDTO.Response dismissAlert(Long id, AlertDTO.ActionRequest request, String operator) {
+        Alert alert = findAlert(id);
+        assertStatus(alert, Alert.AlertStatus.OPEN, "Can only dismiss OPEN alerts");
+
+        alert.setStatus(Alert.AlertStatus.DISMISSED);
+        alert.setUpdatedAt(LocalDateTime.now());
+        Alert saved = alertRepository.save(alert);
+
+        auditTrailService.recordAction(saved, AlertAuditTrail.AuditAction.DISMISSED, operator,
+                request.getNotes() != null ? request.getNotes() : "Alert dismissed.");
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public AlertDTO.Response closeAlert(Long id, AlertDTO.ActionRequest request, String operator) {
+        Alert alert = findAlert(id);
+        if (alert.getStatus() == Alert.AlertStatus.CLOSED) {
+            throw new IllegalStateException("Alert is already closed.");
+        }
+
+        alert.setStatus(Alert.AlertStatus.CLOSED);
+        alert.setUpdatedAt(LocalDateTime.now());
+        Alert saved = alertRepository.save(alert);
+
+        auditTrailService.recordAction(saved, AlertAuditTrail.AuditAction.CLOSED, operator,
+                request.getNotes() != null ? request.getNotes() : "Alert closed.");
+        return toResponse(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public AlertDTO.StatsResponse getStats() {
+        long total = alertRepository.count();
+        long open = alertRepository.countByStatus(Alert.AlertStatus.OPEN);
+        long forwarded = alertRepository.countByStatus(Alert.AlertStatus.FORWARDED);
+        long dismissed = alertRepository.countByStatus(Alert.AlertStatus.DISMISSED);
+        long closed = alertRepository.countByStatus(Alert.AlertStatus.CLOSED);
+        double pctForwarded = total > 0 ? (double) forwarded / total * 100 : 0;
+
+        LocalDateTime last24h = LocalDateTime.now().minusHours(24);
+        LocalDateTime last7d = LocalDateTime.now().minusDays(7);
+
+        return AlertDTO.StatsResponse.builder()
+                .totalAlerts(total)
+                .openAlerts(open)
+                .forwardedAlerts(forwarded)
+                .dismissedAlerts(dismissed)
+                .closedAlerts(closed)
+                .percentageForwarded(Math.round(pctForwarded * 100.0) / 100.0)
+                .alertsLast24h(alertRepository.countAlertsSince(last24h))
+                .alertsLast7d(alertRepository.countAlertsSince(last7d))
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<AlertDTO.Response> getForwardedAlerts() {
+        Pageable pageable = PageRequest.of(0, 1000, Sort.by("createdAt").descending());
+        Page<Alert> result = alertRepository.findByStatus(Alert.AlertStatus.FORWARDED, pageable);
+        return result.getContent().stream().map(this::toResponse).toList();
+    }
+
+    private Alert findAlert(Long id) {
+        return alertRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Alert not found: " + id));
+    }
+
+    private void assertStatus(Alert alert, Alert.AlertStatus required, String message) {
+        if (alert.getStatus() != required) {
+            throw new IllegalStateException(message + ". Current status: " + alert.getStatus());
+        }
+    }
+
+    private AlertDTO.Response toResponse(Alert a) {
+        return AlertDTO.Response.builder()
+                .id(a.getId())
+                .transactionId(a.getTransaction().getId())
+                .transactionRef(a.getTransaction().getTransactionRef())
+                .accountId(a.getTransaction().getAccountId())
+                .customerName(a.getTransaction().getCustomerName())
+                .ruleId(a.getRule().getId())
+                .ruleCode(a.getRule().getRuleCode())
+                .ruleName(a.getRule().getRuleName())
+                .status(a.getStatus())
+                .severity(a.getSeverity())
+                .description(a.getDescription())
+                .assignedTo(a.getAssignedTo())
+                .createdAt(a.getCreatedAt())
+                .updatedAt(a.getUpdatedAt())
+                .build();
+    }
+
+    private AuditTrailDTO toAuditDto(AlertAuditTrail t) {
+        return AuditTrailDTO.builder()
+                .id(t.getId())
+                .alertId(t.getAlert().getId())
+                .transactionId(t.getAlert().getTransaction().getId())
+                .transactionRef(t.getAlert().getTransaction().getTransactionRef())
+                .accountId(t.getAlert().getTransaction().getAccountId())
+                .action(t.getAction())
+                .performedBy(t.getPerformedBy())
+                .notes(t.getNotes())
+                .createdAt(t.getCreatedAt())
+                .build();
+    }
+}

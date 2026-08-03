@@ -1,0 +1,43 @@
+package com.neueda.tms.controller;
+
+import com.neueda.tms.dto.LoginRequest;
+import com.neueda.tms.dto.LoginResponse;
+import com.neueda.tms.security.JwtTokenProvider;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/auth")
+@RequiredArgsConstructor
+public class AuthController {
+
+    private final AuthenticationManager authenticationManager;
+    private final JwtTokenProvider tokenProvider;
+
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
+        );
+
+        String token = tokenProvider.generateToken(authentication);
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        String role = userDetails.getAuthorities().stream()
+                .findFirst()
+                .map(a -> a.getAuthority().replace("ROLE_", ""))
+                .orElse("ANALYST");
+
+        return ResponseEntity.ok(LoginResponse.builder()
+                .accessToken(token)
+                .tokenType("Bearer")
+                .expiresIn(tokenProvider.getExpirationMs())
+                .username(userDetails.getUsername())
+                .role(role)
+                .build());
+    }
+}

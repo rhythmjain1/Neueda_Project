@@ -1,0 +1,54 @@
+package com.neueda.tms.controller;
+
+import com.neueda.tms.dto.*;
+import com.neueda.tms.service.ReportService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/reports")
+@RequiredArgsConstructor
+public class ReportController {
+
+    private final ReportService reportService;
+
+    @GetMapping("/transactions")
+    public ResponseEntity<PageResponse<TransactionDTO.Response>> transactionReport(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime toDate,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        return ResponseEntity.ok(reportService.getTransactionReport(fromDate, toDate, page, size));
+    }
+
+    @GetMapping("/alerts")
+    public ResponseEntity<PageResponse<AlertDTO.Response>> alertReport(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime toDate,
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        return ResponseEntity.ok(reportService.getAlertReport(fromDate, toDate, status, page, size));
+    }
+
+    @GetMapping("/accounts")
+    public ResponseEntity<List<Map<String, Object>>> accountReport() {
+        return ResponseEntity.ok(reportService.getAccountAlertReport());
+    }
+
+    @GetMapping("/audit")
+    public ResponseEntity<PageResponse<AuditTrailDTO>> auditReport(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime toDate,
+            @RequestParam(required = false) String action,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        return ResponseEntity.ok(reportService.getAuditReport(fromDate, toDate, action, page, size));
+    }
+}
