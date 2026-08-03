@@ -9,6 +9,8 @@ services:
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
+      - key: DB_SSL_MODE
+        value: "true"
       - key: DB_HOST
         sync: false
       - key: DB_PORT
