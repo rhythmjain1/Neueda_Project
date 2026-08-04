@@ -155,7 +155,7 @@ public class MonitoringRuleRepository {
      * Serialize parameters map to JSON string for storage.
      * Uses Jackson ObjectMapper for safe serialization.
      */
-    private String toJson(Map<String, Object> params) {
+    private static String toJson(Map<String, Object> params) {
         if (params == null || params.isEmpty()) return null;
         try {
             return OBJECT_MAPPER.writeValueAsString(params);
@@ -168,7 +168,7 @@ public class MonitoringRuleRepository {
     /**
      * Deserialize parameters JSON string from DB back to map.
      */
-    private Map<String, Object> parseJson(String json) {
+    private static Map<String, Object> parseJson(String json) {
         if (json == null || json.isBlank()) return null;
         try {
             return OBJECT_MAPPER.readValue(
