@@ -8,7 +8,8 @@ import com.neueda.tms.repository.rule.MonitoringRule;
 import com.neueda.tms.repository.alert.AlertRepository;
 import com.neueda.tms.repository.rule.MonitoringRuleRepository;
 import com.neueda.tms.service.rule.RuleEvaluator;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,8 +27,9 @@ import java.util.stream.Collectors;
  * Evaluates a transaction synchronously against all active rules and generates alerts.
  */
 @Service
-@Slf4j
 public class MonitoringEngineService {
+    private static final Logger log = LoggerFactory.getLogger(MonitoringEngineService.class);
+
 
     private final MonitoringRuleRepository ruleRepository;
     private final AlertRepository alertRepository;
@@ -64,14 +66,17 @@ public class MonitoringEngineService {
             try {
                 Optional<String> triggerDescription = evaluator.evaluate(transaction, rule);
                 if (triggerDescription.isPresent()) {
-                    Alert alert = Alert.builder()
-                            .transaction(transaction)
-                            .rule(rule)
-                            .status(Alert.AlertStatus.OPEN)
-                            .severity(evaluator.getSeverity(rule))
-                            .description(triggerDescription.get())
-                            .createdAt(LocalDateTime.now())
-                            .build();
+                    Alert alert = new Alert(
+                            null, // id
+                            transaction,
+                            rule,
+                            Alert.AlertStatus.OPEN,
+                            evaluator.getSeverity(rule),
+                            triggerDescription.get(),
+                            null, // assignedTo
+                            LocalDateTime.now(),
+                            null  // updatedAt
+                    );
 
                     Alert savedAlert = alertRepository.save(alert);
                     generatedAlerts.add(savedAlert);

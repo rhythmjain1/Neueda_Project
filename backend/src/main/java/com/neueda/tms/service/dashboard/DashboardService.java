@@ -45,18 +45,19 @@ public class DashboardService implements IDashboardService {
 
         List<Map<String, Object>> alertsByStatus = alertRepository.countGroupByStatus();
 
-        return DashboardStatsDTO.builder()
-                .totalAlerts(alertStats.getTotalAlerts())
-                .openAlerts(alertStats.getOpenAlerts())
-                .forwardedAlerts(alertStats.getForwardedAlerts())
-                .dismissedAlerts(alertStats.getDismissedAlerts())
-                .closedAlerts(alertStats.getClosedAlerts())
-                .percentageForwarded(alertStats.getPercentageForwarded())
-                .totalTransactions(totalTx)
-                .transactionsLast24h(txLast24h)
-                .alertsLast24h(alertStats.getAlertsLast24h())
-                .alertsLast7d(alertStats.getAlertsLast7d())
-                .alertsByStatus(alertsByStatus)
-                .build();
+        return new DashboardStatsDTO(
+                alertStats.getTotalAlerts(),
+                alertStats.getOpenAlerts(),
+                alertStats.getForwardedAlerts(),
+                alertStats.getDismissedAlerts(),
+                alertStats.getClosedAlerts(),
+                alertStats.getPercentageForwarded(),
+                totalTx,
+                txLast24h,
+                alertStats.getAlertsLast24h(),
+                alertStats.getAlertsLast7d(),
+                alertsByStatus,
+                null // alertsByRule is not set in original code, passing null
+        );
     }
 }

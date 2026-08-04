@@ -48,28 +48,29 @@ public class ReportService implements IReportService {
 
         long totalPages = (totalElements + size - 1) / size;
 
-        return PageResponse.<TransactionDTO.Response>builder()
-                .content(content.stream().map(t -> TransactionDTO.Response.builder()
-                        .id(t.getId())
-                        .transactionRef(t.getTransactionRef())
-                        .accountId(t.getAccountId())
-                        .customerName(t.getCustomerName())
-                        .amount(t.getAmount())
-                        .currency(t.getCurrency())
-                        .countryCode(t.getCountryCode())
-                        .transactionType(t.getTransactionType())
-                        .status(t.getStatus())
-                        .isNewCustomer(t.getIsNewCustomer())
-                        .createdAt(t.getCreatedAt())
-                        .alertsGenerated(0)
-                        .build()).toList())
-                .pageNumber(page)
-                .pageSize(size)
-                .totalElements(totalElements)
-                .totalPages((int) totalPages)
-                .first(page == 0)
-                .last(page >= totalPages - 1)
-                .build();
+        return new PageResponse<>(
+                content.stream().map(t -> new TransactionDTO.Response(
+                        t.getId(),
+                        t.getTransactionRef(),
+                        t.getAccountId(),
+                        t.getCustomerName(),
+                        t.getAmount(),
+                        t.getCurrency(),
+                        t.getCountryCode(),
+                        t.getTransactionType(),
+                        t.getStatus(),
+                        t.getIsNewCustomer(),
+                        t.getCreatedAt(),
+                        null, // metadata
+                        0 // alertsGenerated
+                )).toList(),
+                page,
+                size,
+                totalElements,
+                (int) totalPages,
+                page >= totalPages - 1,
+                page == 0
+        );
     }
 
     @Override
@@ -90,30 +91,30 @@ public class ReportService implements IReportService {
         long totalElements = alertRepository.countSearchAlerts(statusEnum, null, fromDate, toDate, null);
         long totalPages = (totalElements + size - 1) / size;
 
-        return PageResponse.<AlertDTO.Response>builder()
-                .content(content.stream().map(a -> AlertDTO.Response.builder()
-                        .id(a.getId())
-                        .transactionId(a.getTransaction().getId())
-                        .transactionRef(a.getTransaction().getTransactionRef())
-                        .accountId(a.getTransaction().getAccountId())
-                        .customerName(a.getTransaction().getCustomerName())
-                        .ruleId(a.getRule().getId())
-                        .ruleCode(a.getRule().getRuleCode())
-                        .ruleName(a.getRule().getRuleName())
-                        .status(a.getStatus())
-                        .severity(a.getSeverity())
-                        .description(a.getDescription())
-                        .assignedTo(a.getAssignedTo())
-                        .createdAt(a.getCreatedAt())
-                        .updatedAt(a.getUpdatedAt())
-                        .build()).toList())
-                .pageNumber(page)
-                .pageSize(size)
-                .totalElements(totalElements)
-                .totalPages((int) totalPages)
-                .first(page == 0)
-                .last(page >= totalPages - 1)
-                .build();
+        return new PageResponse<>(
+                content.stream().map(a -> new AlertDTO.Response(
+                        a.getId(),
+                        a.getTransaction().getId(),
+                        a.getTransaction().getTransactionRef(),
+                        a.getTransaction().getAccountId(),
+                        a.getTransaction().getCustomerName(),
+                        a.getRule().getId(),
+                        a.getRule().getRuleCode(),
+                        a.getRule().getRuleName(),
+                        a.getStatus(),
+                        a.getSeverity(),
+                        a.getDescription(),
+                        a.getAssignedTo(),
+                        a.getCreatedAt(),
+                        a.getUpdatedAt()
+                )).toList(),
+                page,
+                size,
+                totalElements,
+                (int) totalPages,
+                page >= totalPages - 1,
+                page == 0
+        );
     }
 
     @Override
@@ -137,24 +138,24 @@ public class ReportService implements IReportService {
         long totalElements = auditTrailRepository.countAuditReport(fromDate, toDate, actionEnum);
         long totalPages = (totalElements + size - 1) / size;
 
-        return PageResponse.<AuditTrailDTO>builder()
-                .content(content.stream().map(t -> AuditTrailDTO.builder()
-                        .id(t.getId())
-                        .alertId(t.getAlert().getId())
-                        .transactionId(t.getAlert().getTransaction().getId())
-                        .transactionRef(t.getAlert().getTransaction().getTransactionRef())
-                        .accountId(t.getAlert().getTransaction().getAccountId())
-                        .action(t.getAction())
-                        .performedBy(t.getPerformedBy())
-                        .notes(t.getNotes())
-                        .createdAt(t.getCreatedAt())
-                        .build()).toList())
-                .pageNumber(page)
-                .pageSize(size)
-                .totalElements(totalElements)
-                .totalPages((int) totalPages)
-                .first(page == 0)
-                .last(page >= totalPages - 1)
-                .build();
+        return new PageResponse<>(
+                content.stream().map(t -> new AuditTrailDTO(
+                        t.getId(),
+                        t.getAlert().getId(),
+                        t.getAlert().getTransaction().getId(),
+                        t.getAlert().getTransaction().getTransactionRef(),
+                        t.getAlert().getTransaction().getAccountId(),
+                        t.getAction(),
+                        t.getPerformedBy(),
+                        t.getNotes(),
+                        t.getCreatedAt()
+                )).toList(),
+                page,
+                size,
+                totalElements,
+                (int) totalPages,
+                page >= totalPages - 1,
+                page == 0
+        );
     }
 }

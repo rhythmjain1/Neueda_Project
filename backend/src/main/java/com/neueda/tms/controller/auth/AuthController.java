@@ -38,12 +38,12 @@ public class AuthController {
                 .map(a -> a.getAuthority().replace("ROLE_", ""))
                 .orElse("ANALYST");
 
-        return ResponseEntity.ok(LoginResponse.builder()
-                .accessToken(token)
-                .tokenType("Bearer")
-                .expiresIn(tokenProvider.getExpirationMs())
-                .username(userDetails.getUsername())
-                .role(role)
-                .build());
+        return ResponseEntity.ok(new LoginResponse(
+                token,
+                "Bearer",
+                tokenProvider.getExpirationMs(),
+                userDetails.getUsername(),
+                role
+        ));
     }
 }

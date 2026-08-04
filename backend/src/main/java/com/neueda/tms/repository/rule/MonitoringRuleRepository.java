@@ -1,7 +1,8 @@
 package com.neueda.tms.repository.rule;
 
 import com.neueda.tms.repository.rule.MonitoringRule;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -23,8 +24,9 @@ import java.util.Optional;
  * All queries use parameterized statements to prevent SQL injection.
  */
 @Repository
-@Slf4j
 public class MonitoringRuleRepository {
+    private static final Logger log = LoggerFactory.getLogger(MonitoringRuleRepository.class);
+
 
     private static final com.fasterxml.jackson.databind.ObjectMapper OBJECT_MAPPER =
             new com.fasterxml.jackson.databind.ObjectMapper();

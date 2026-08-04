@@ -7,7 +7,8 @@ import com.neueda.tms.controller.transaction.TransactionDTO;
 import com.neueda.tms.repository.alert.Alert;
 import com.neueda.tms.repository.transaction.Transaction;
 import com.neueda.tms.repository.transaction.TransactionRepository;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,8 +19,9 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 @Service
-@Slf4j
 public class TransactionService implements ITransactionService {
+    private static final Logger log = LoggerFactory.getLogger(TransactionService.class);
+
 
     private final TransactionRepository transactionRepository;
     private final MonitoringEngineService monitoringEngineService;
@@ -39,19 +41,19 @@ public class TransactionService implements ITransactionService {
                     "Transaction with ref '" + request.getTransactionRef() + "' already exists.");
         }
 
-        Transaction transaction = Transaction.builder()
-                .transactionRef(request.getTransactionRef())
-                .accountId(request.getAccountId())
-                .customerName(request.getCustomerName())
-                .amount(request.getAmount())
-                .currency(request.getCurrency())
-                .countryCode(request.getCountryCode())
-                .transactionType(request.getTransactionType())
-                .isNewCustomer(request.getIsNewCustomer() != null ? request.getIsNewCustomer() : false)
-                .metadata(request.getMetadata())
-                .status(Transaction.TransactionStatus.PENDING)
-                .createdAt(LocalDateTime.now())
-                .build();
+        Transaction transaction = new Transaction(
+                request.getTransactionRef(),
+                request.getAccountId(),
+                request.getCustomerName(),
+                request.getAmount(),
+                request.getCurrency(),
+                request.getCountryCode(),
+                request.getTransactionType(),
+                request.getMetadata()
+        );
+        transaction.setIsNewCustomer(request.getIsNewCustomer() != null ? request.getIsNewCustomer() : false);
+        transaction.setStatus(Transaction.TransactionStatus.PENDING);
+        transaction.setCreatedAt(LocalDateTime.now());
 
         Transaction saved = transactionRepository.save(transaction);
         log.info("Transaction saved: {}", saved.getTransactionRef());
@@ -108,15 +110,15 @@ public class TransactionService implements ITransactionService {
 
         long totalPages = (totalElements + size - 1) / size;
 
-        return PageResponse.<TransactionDTO.Response>builder()
-                .content(content.stream().map(t -> toResponse(t, 0)).toList())
-                .pageNumber(page)
-                .pageSize(size)
-                .totalElements(totalElements)
-                .totalPages((int) totalPages)
-                .first(page == 0)
-                .last(page >= totalPages - 1)
-                .build();
+        return new PageResponse<>(
+                content.stream().map(t -> toResponse(t, 0)).toList(),
+                page,
+                size,
+                totalElements,
+                (int) totalPages,
+                page >= totalPages - 1,
+                page == 0
+        );
     }
 
     @Override
@@ -129,32 +131,32 @@ public class TransactionService implements ITransactionService {
         long totalElements = transactionRepository.countByAccountId(accountId);
         long totalPages = (totalElements + size - 1) / size;
 
-        return PageResponse.<TransactionDTO.Response>builder()
-                .content(content.stream().map(t -> toResponse(t, 0)).toList())
-                .pageNumber(page)
-                .pageSize(size)
-                .totalElements(totalElements)
-                .totalPages((int) totalPages)
-                .first(page == 0)
-                .last(page >= totalPages - 1)
-                .build();
+        return new PageResponse<>(
+                content.stream().map(t -> toResponse(t, 0)).toList(),
+                page,
+                size,
+                totalElements,
+                (int) totalPages,
+                page >= totalPages - 1,
+                page == 0
+        );
     }
 
     private TransactionDTO.Response toResponse(Transaction t, int alertsGenerated) {
-        return TransactionDTO.Response.builder()
-                .id(t.getId())
-                .transactionRef(t.getTransactionRef())
-                .accountId(t.getAccountId())
-                .customerName(t.getCustomerName())
-                .amount(t.getAmount())
-                .currency(t.getCurrency())
-                .countryCode(t.getCountryCode())
-                .transactionType(t.getTransactionType())
-                .status(t.getStatus())
-                .isNewCustomer(t.getIsNewCustomer())
-                .createdAt(t.getCreatedAt())
-                .metadata(t.getMetadata())
-                .alertsGenerated(alertsGenerated)
-                .build();
+        return new TransactionDTO.Response(
+                t.getId(),
+                t.getTransactionRef(),
+                t.getAccountId(),
+                t.getCustomerName(),
+                t.getAmount(),
+                t.getCurrency(),
+                t.getCountryCode(),
+                t.getTransactionType(),
+                t.getStatus(),
+                t.getIsNewCustomer(),
+                t.getCreatedAt(),
+                t.getMetadata(),
+                alertsGenerated
+        );
     }
 }

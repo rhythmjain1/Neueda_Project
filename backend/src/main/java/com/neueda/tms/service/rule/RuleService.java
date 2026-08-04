@@ -57,15 +57,15 @@ public class RuleService implements IRuleService {
     }
 
     private RuleDTO.Response toResponse(MonitoringRule r) {
-        return RuleDTO.Response.builder()
-                .id(r.getId())
-                .ruleCode(r.getRuleCode())
-                .ruleName(r.getRuleName())
-                .description(r.getDescription())
-                .severity(r.getSeverity())
-                .isActive(r.getIsActive())
-                .parameters(r.getParameters())
-                .updatedAt(r.getUpdatedAt())
-                .build();
+        return new RuleDTO.Response(
+                r.getId(),
+                r.getRuleCode(),
+                r.getRuleName(),
+                r.getDescription(),
+                r.getSeverity(),
+                r.getIsActive(),
+                r.getParameters(),
+                r.getUpdatedAt()
+        );
     }
 }
