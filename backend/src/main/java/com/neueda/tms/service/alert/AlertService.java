@@ -6,7 +6,6 @@ import com.neueda.tms.repository.alert.AlertAuditTrail;
 import com.neueda.tms.controller.alert.AlertDTO;
 import com.neueda.tms.controller.alert.AuditTrailDTO;
 import com.neueda.tms.controller.common.PageResponse;
-import com.neueda.tms.repository.*;
 import com.neueda.tms.repository.alert.AlertAuditTrailRepository;
 import com.neueda.tms.repository.alert.AlertRepository;
 import org.springframework.beans.factory.annotation.Autowired;

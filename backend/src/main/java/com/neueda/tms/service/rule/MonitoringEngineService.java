@@ -3,8 +3,8 @@ package com.neueda.tms.service.rule;
 import com.neueda.tms.service.alert.AuditTrailService;
 import com.neueda.tms.repository.transaction.Transaction;
 import com.neueda.tms.repository.alert.Alert;
-
-import com.neueda.tms.repository.*;
+import com.neueda.tms.repository.alert.AlertAuditTrail;
+import com.neueda.tms.repository.rule.MonitoringRule;
 import com.neueda.tms.repository.alert.AlertRepository;
 import com.neueda.tms.repository.rule.MonitoringRuleRepository;
 import com.neueda.tms.service.rule.RuleEvaluator;
