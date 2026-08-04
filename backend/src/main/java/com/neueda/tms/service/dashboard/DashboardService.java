@@ -1,5 +1,7 @@
 package com.neueda.tms.service.dashboard;
 
+import com.neueda.tms.service.alert.AlertService;
+
 import com.neueda.tms.controller.alert.AlertDTO;
 import com.neueda.tms.controller.dashboard.DashboardStatsDTO;
 import com.neueda.tms.repository.alert.AlertRepository;

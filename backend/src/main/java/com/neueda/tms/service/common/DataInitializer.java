@@ -1,5 +1,9 @@
 package com.neueda.tms.service.common;
 
+import com.neueda.tms.repository.auth.UserRepository;
+import com.neueda.tms.repository.rule.MonitoringRuleRepository;
+import com.neueda.tms.repository.rule.MonitoringRule;
+
 import com.neueda.tms.repository.*;
 import com.neueda.tms.repository.*;
 import lombok.extern.slf4j.Slf4j;

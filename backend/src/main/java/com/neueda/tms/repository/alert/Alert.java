@@ -1,5 +1,8 @@
 package com.neueda.tms.repository.alert;
 
+import com.neueda.tms.repository.transaction.Transaction;
+import com.neueda.tms.repository.rule.MonitoringRule;
+
 import lombok.*;
 
 import java.time.LocalDateTime;

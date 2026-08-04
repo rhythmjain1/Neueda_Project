@@ -1,5 +1,8 @@
 package com.neueda.tms.service.alert;
 
+import com.neueda.tms.repository.alert.Alert;
+import com.neueda.tms.repository.alert.AlertAuditTrail;
+
 import com.neueda.tms.controller.alert.AlertDTO;
 import com.neueda.tms.controller.alert.AuditTrailDTO;
 import com.neueda.tms.controller.common.PageResponse;

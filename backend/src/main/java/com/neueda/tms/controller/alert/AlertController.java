@@ -1,6 +1,6 @@
 package com.neueda.tms.controller.alert;
 
-import com.neueda.tms.controller.*;
+import com.neueda.tms.controller.common.PageResponse;
 import com.neueda.tms.service.alert.IAlertService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;

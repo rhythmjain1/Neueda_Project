@@ -1,5 +1,8 @@
 package com.neueda.tms.service.alert;
 
+import com.neueda.tms.repository.alert.Alert;
+import com.neueda.tms.repository.alert.AlertAuditTrail;
+
 import com.neueda.tms.repository.*;
 import com.neueda.tms.repository.alert.AlertAuditTrailRepository;
 import lombok.extern.slf4j.Slf4j;
