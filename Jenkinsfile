@@ -7,9 +7,7 @@ pipeline {
         IMAGE_FRONTEND= "${REGISTRY}/tms-frontend"
         IMAGE_TAG     = "${env.BUILD_NUMBER}-${env.GIT_COMMIT?.take(7) ?: 'local'}"
         
-        // EC2 Deployment Variables
-        EC2_HOST      = 'ec2-user@your-ec2-ip.compute.amazonaws.com'
-        DEPLOY_DIR    = '/opt/tms-app'
+        DEPLOY_DIR    = "${env.WORKSPACE}"
     }
 
     options {
@@ -94,28 +92,19 @@ pipeline {
             }
         }
 
-        stage('Deploy to EC2') {
+        stage('Deploy Locally') {
             when {
                 branch 'main'
             }
             steps {
-                echo '🚀 Deploying to Amazon EC2...'
-                // Requires the "SSH Agent" Jenkins plugin and a credential named 'ec2-ssh-key'
-                sshagent(credentials: ['ec2-ssh-key']) {
-                    sh '''
-                        # 1. Copy the docker-compose file to the EC2 server
-                        scp -o StrictHostKeyChecking=no docker-compose.yml ${EC2_HOST}:${DEPLOY_DIR}/docker-compose.yml
-                        
-                        # 2. SSH into EC2, pull latest images, and restart containers
-                        ssh -o StrictHostKeyChecking=no ${EC2_HOST} "
-                            cd ${DEPLOY_DIR}
-                            export IMAGE_TAG=${IMAGE_TAG}
-                            docker compose pull
-                            docker compose up -d --remove-orphans
-                            docker compose ps
-                        "
-                    '''
-                }
+                echo '🚀 Deploying services locally on this host...'
+                sh """
+                    cd ${DEPLOY_DIR}
+                    export IMAGE_TAG=${IMAGE_TAG}
+                    docker compose up -d --remove-orphans
+                    docker compose ps
+                """
+                echo '✅ Services running on localhost: frontend=3000  backend=8080  mysql=3306'
             }
         }
     }
