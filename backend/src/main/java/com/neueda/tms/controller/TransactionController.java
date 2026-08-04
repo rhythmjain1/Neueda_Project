@@ -2,34 +2,49 @@ package com.neueda.tms.controller;
 
 import com.neueda.tms.dto.PageResponse;
 import com.neueda.tms.dto.TransactionDTO;
-import com.neueda.tms.service.TransactionService;
+import com.neueda.tms.service.ITransactionService;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * REST controller for transaction operations.
+ * POST /transactions is open for bank system integration.
+ * All other endpoints require authentication.
+ */
 @RestController
 @RequestMapping("/transactions")
-@RequiredArgsConstructor
 public class TransactionController {
 
-    private final TransactionService transactionService;
+    private final ITransactionService transactionService;
 
+    @Autowired
+    public TransactionController(ITransactionService transactionService) {
+        this.transactionService = transactionService;
+    }
+
+    /** Open endpoint — bank systems submit transactions without auth token. */
     @PostMapping
-    public ResponseEntity<TransactionDTO.Response> submit(@Valid @RequestBody TransactionDTO.Request request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(transactionService.submitTransaction(request));
+    public ResponseEntity<TransactionDTO.Response> submit(
+            @Valid @RequestBody TransactionDTO.Request request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(transactionService.submitTransaction(request));
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ANALYST')")
     public ResponseEntity<TransactionDTO.Response> getById(@PathVariable Long id) {
         return ResponseEntity.ok(transactionService.getTransaction(id));
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'ANALYST')")
     public ResponseEntity<PageResponse<TransactionDTO.Response>> search(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String status,
@@ -51,6 +66,7 @@ public class TransactionController {
     }
 
     @GetMapping("/account/{accountId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ANALYST')")
     public ResponseEntity<PageResponse<TransactionDTO.Response>> getByAccount(
             @PathVariable String accountId,
             @RequestParam(defaultValue = "0") int page,

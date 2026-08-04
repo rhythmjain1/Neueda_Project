@@ -5,12 +5,7 @@ import com.neueda.tms.dto.TransactionDTO;
 import com.neueda.tms.model.Alert;
 import com.neueda.tms.model.Transaction;
 import com.neueda.tms.repository.TransactionRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,17 +15,24 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 @Service
-@RequiredArgsConstructor
-@Slf4j
-public class TransactionService {
+public class TransactionService implements ITransactionService {
 
     private final TransactionRepository transactionRepository;
     private final MonitoringEngineService monitoringEngineService;
 
+    @Autowired
+    public TransactionService(TransactionRepository transactionRepository,
+                              MonitoringEngineService monitoringEngineService) {
+        this.transactionRepository = transactionRepository;
+        this.monitoringEngineService = monitoringEngineService;
+    }
+
+    @Override
     @Transactional
     public TransactionDTO.Response submitTransaction(TransactionDTO.Request request) {
         if (transactionRepository.findByTransactionRef(request.getTransactionRef()).isPresent()) {
-            throw new IllegalArgumentException("Transaction with ref '" + request.getTransactionRef() + "' already exists.");
+            throw new IllegalArgumentException(
+                    "Transaction with ref '" + request.getTransactionRef() + "' already exists.");
         }
 
         Transaction transaction = Transaction.builder()
@@ -43,6 +45,7 @@ public class TransactionService {
                 .transactionType(request.getTransactionType())
                 .isNewCustomer(request.getIsNewCustomer() != null ? request.getIsNewCustomer() : false)
                 .metadata(request.getMetadata())
+                .status(Transaction.TransactionStatus.PENDING)
                 .createdAt(LocalDateTime.now())
                 .build();
 
@@ -52,18 +55,18 @@ public class TransactionService {
         // Synchronous rule evaluation immediately after save
         List<Alert> alerts = monitoringEngineService.evaluate(saved);
 
-        // If any alerts generated, flag the transaction
+        // Update status based on alerts
         if (!alerts.isEmpty()) {
             saved.setStatus(Transaction.TransactionStatus.FLAGGED);
-            transactionRepository.save(saved);
         } else {
             saved.setStatus(Transaction.TransactionStatus.COMPLETED);
-            transactionRepository.save(saved);
         }
+        transactionRepository.save(saved);
 
         return toResponse(saved, alerts.size());
     }
 
+    @Override
     @Transactional(readOnly = true)
     public TransactionDTO.Response getTransaction(Long id) {
         Transaction tx = transactionRepository.findById(id)
@@ -71,25 +74,13 @@ public class TransactionService {
         return toResponse(tx, 0);
     }
 
+    @Override
     @Transactional(readOnly = true)
     public PageResponse<TransactionDTO.Response> searchTransactions(
-            String search,
-            String status,
-            String type,
-            String countryCode,
-            LocalDateTime fromDate,
-            LocalDateTime toDate,
-            BigDecimal minAmount,
-            BigDecimal maxAmount,
-            int page,
-            int size,
-            String sortBy,
-            String sortDir) {
-
-        Sort sort = sortDir.equalsIgnoreCase("asc")
-                ? Sort.by(sortBy).ascending()
-                : Sort.by(sortBy).descending();
-        Pageable pageable = PageRequest.of(page, size, sort);
+            String search, String status, String type, String countryCode,
+            LocalDateTime fromDate, LocalDateTime toDate,
+            BigDecimal minAmount, BigDecimal maxAmount,
+            int page, int size, String sortBy, String sortDir) {
 
         Transaction.TransactionStatus statusEnum = null;
         if (status != null && !status.isBlank()) {
@@ -101,34 +92,47 @@ public class TransactionService {
             typeEnum = Transaction.TransactionType.valueOf(type.toUpperCase());
         }
 
-        Page<Transaction> result = transactionRepository.searchTransactions(
+        int offset = page * size;
+        List<Transaction> content = transactionRepository.searchTransactions(
                 search, statusEnum, typeEnum, countryCode,
-                fromDate, toDate, minAmount, maxAmount, pageable
-        );
+                fromDate, toDate, minAmount, maxAmount,
+                offset, size, sortBy, sortDir);
+
+        long totalElements = transactionRepository.countSearchTransactions(
+                search, statusEnum, typeEnum, countryCode,
+                fromDate, toDate, minAmount, maxAmount);
+
+        long totalPages = (totalElements + size - 1) / size;
 
         return PageResponse.<TransactionDTO.Response>builder()
-                .content(result.getContent().stream().map(t -> toResponse(t, 0)).toList())
-                .pageNumber(result.getNumber())
-                .pageSize(result.getSize())
-                .totalElements(result.getTotalElements())
-                .totalPages(result.getTotalPages())
-                .first(result.isFirst())
-                .last(result.isLast())
+                .content(content.stream().map(t -> toResponse(t, 0)).toList())
+                .pageNumber(page)
+                .pageSize(size)
+                .totalElements(totalElements)
+                .totalPages((int) totalPages)
+                .first(page == 0)
+                .last(page >= totalPages - 1)
                 .build();
     }
 
+    @Override
     @Transactional(readOnly = true)
-    public PageResponse<TransactionDTO.Response> getTransactionsByAccount(String accountId, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<Transaction> result = transactionRepository.findByAccountId(accountId, pageable);
+    public PageResponse<TransactionDTO.Response> getTransactionsByAccount(
+            String accountId, int page, int size) {
+
+        int offset = page * size;
+        List<Transaction> content = transactionRepository.findByAccountId(accountId, offset, size);
+        long totalElements = transactionRepository.countByAccountId(accountId);
+        long totalPages = (totalElements + size - 1) / size;
+
         return PageResponse.<TransactionDTO.Response>builder()
-                .content(result.getContent().stream().map(t -> toResponse(t, 0)).toList())
-                .pageNumber(result.getNumber())
-                .pageSize(result.getSize())
-                .totalElements(result.getTotalElements())
-                .totalPages(result.getTotalPages())
-                .first(result.isFirst())
-                .last(result.isLast())
+                .content(content.stream().map(t -> toResponse(t, 0)).toList())
+                .pageNumber(page)
+                .pageSize(size)
+                .totalElements(totalElements)
+                .totalPages((int) totalPages)
+                .first(page == 0)
+                .last(page >= totalPages - 1)
                 .build();
     }
 

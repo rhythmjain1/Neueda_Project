@@ -4,7 +4,7 @@ import com.neueda.tms.model.Alert;
 import com.neueda.tms.model.MonitoringRule;
 import com.neueda.tms.model.Transaction;
 import com.neueda.tms.repository.TransactionRepository;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -16,10 +16,14 @@ import java.util.Optional;
  * Default: > 5 transactions in 10 minutes.
  */
 @Component
-@RequiredArgsConstructor
 public class RapidTransactionsRule implements RuleEvaluator {
 
     private final TransactionRepository transactionRepository;
+
+    @Autowired
+    public RapidTransactionsRule(TransactionRepository transactionRepository) {
+        this.transactionRepository = transactionRepository;
+    }
 
     @Override
     public String getRuleCode() {

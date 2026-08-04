@@ -1,22 +1,32 @@
 package com.neueda.tms.controller;
 
 import com.neueda.tms.dto.*;
-import com.neueda.tms.service.ReportService;
-import lombok.RequiredArgsConstructor;
+import com.neueda.tms.service.IReportService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * REST controller for report generation.
+ * All endpoints are restricted to authenticated ADMIN or ANALYST users.
+ */
 @RestController
 @RequestMapping("/reports")
-@RequiredArgsConstructor
+@PreAuthorize("hasAnyRole('ADMIN', 'ANALYST')")
 public class ReportController {
 
-    private final ReportService reportService;
+    private final IReportService reportService;
+
+    @Autowired
+    public ReportController(IReportService reportService) {
+        this.reportService = reportService;
+    }
 
     @GetMapping("/transactions")
     public ResponseEntity<PageResponse<TransactionDTO.Response>> transactionReport(

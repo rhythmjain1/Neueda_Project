@@ -4,8 +4,8 @@ import com.neueda.tms.model.*;
 import com.neueda.tms.repository.AlertRepository;
 import com.neueda.tms.repository.MonitoringRuleRepository;
 import com.neueda.tms.rules.RuleEvaluator;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,7 +22,6 @@ import java.util.stream.Collectors;
  * Evaluates a transaction synchronously against all active rules and generates alerts.
  */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class MonitoringEngineService {
 
@@ -30,6 +29,17 @@ public class MonitoringEngineService {
     private final AlertRepository alertRepository;
     private final AuditTrailService auditTrailService;
     private final List<RuleEvaluator> evaluators;
+
+    @Autowired
+    public MonitoringEngineService(MonitoringRuleRepository ruleRepository,
+                                   AlertRepository alertRepository,
+                                   AuditTrailService auditTrailService,
+                                   List<RuleEvaluator> evaluators) {
+        this.ruleRepository = ruleRepository;
+        this.alertRepository = alertRepository;
+        this.auditTrailService = auditTrailService;
+        this.evaluators = evaluators;
+    }
 
     @Transactional
     public List<Alert> evaluate(Transaction transaction) {

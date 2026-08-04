@@ -4,7 +4,7 @@ import com.neueda.tms.dto.LoginRequest;
 import com.neueda.tms.dto.LoginResponse;
 import com.neueda.tms.security.JwtTokenProvider;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
@@ -13,11 +13,17 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
-@RequiredArgsConstructor
 public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider tokenProvider;
+
+    @Autowired
+    public AuthController(AuthenticationManager authenticationManager,
+                          JwtTokenProvider tokenProvider) {
+        this.authenticationManager = authenticationManager;
+        this.tokenProvider = tokenProvider;
+    }
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {

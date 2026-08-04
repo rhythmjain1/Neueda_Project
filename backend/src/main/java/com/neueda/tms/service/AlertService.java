@@ -6,29 +6,35 @@ import com.neueda.tms.dto.PageResponse;
 import com.neueda.tms.model.*;
 import com.neueda.tms.repository.AlertAuditTrailRepository;
 import com.neueda.tms.repository.AlertRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
 
 @Service
-@RequiredArgsConstructor
-@Slf4j
-public class AlertService {
+public class AlertService implements IAlertService {
 
     private final AlertRepository alertRepository;
     private final AlertAuditTrailRepository auditTrailRepository;
     private final AuditTrailService auditTrailService;
 
+    @Autowired
+    public AlertService(AlertRepository alertRepository,
+                        AlertAuditTrailRepository auditTrailRepository,
+                        AuditTrailService auditTrailService) {
+        this.alertRepository = alertRepository;
+        this.auditTrailRepository = auditTrailRepository;
+        this.auditTrailService = auditTrailService;
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public PageResponse<AlertDTO.Response> searchAlerts(
-            String status, String severity, LocalDateTime fromDate, LocalDateTime toDate,
+            String status, String severity,
+            LocalDateTime fromDate, LocalDateTime toDate,
             String search, int page, int size, String sortBy, String sortDir) {
 
         Alert.AlertStatus statusEnum = status != null && !status.isBlank()
@@ -36,43 +42,50 @@ public class AlertService {
         Alert.AlertSeverity severityEnum = severity != null && !severity.isBlank()
                 ? Alert.AlertSeverity.valueOf(severity.toUpperCase()) : null;
 
-        Sort sort = sortDir.equalsIgnoreCase("asc")
-                ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
-        Pageable pageable = PageRequest.of(page, size, sort);
+        int offset = page * size;
+        List<Alert> content = alertRepository.searchAlerts(
+                statusEnum, severityEnum, fromDate, toDate, search,
+                offset, size, sortBy, sortDir);
 
-        Page<Alert> result = alertRepository.searchAlerts(
-                statusEnum, severityEnum, fromDate, toDate, search, pageable);
+        long totalElements = alertRepository.countSearchAlerts(
+                statusEnum, severityEnum, fromDate, toDate, search);
+
+        long totalPages = (totalElements + size - 1) / size;
 
         return PageResponse.<AlertDTO.Response>builder()
-                .content(result.getContent().stream().map(this::toResponse).toList())
-                .pageNumber(result.getNumber())
-                .pageSize(result.getSize())
-                .totalElements(result.getTotalElements())
-                .totalPages(result.getTotalPages())
-                .first(result.isFirst())
-                .last(result.isLast())
+                .content(content.stream().map(this::toResponse).toList())
+                .pageNumber(page)
+                .pageSize(size)
+                .totalElements(totalElements)
+                .totalPages((int) totalPages)
+                .first(page == 0)
+                .last(page >= totalPages - 1)
                 .build();
     }
 
+    @Override
     @Transactional(readOnly = true)
     public AlertDTO.Response getAlert(Long id) {
         Alert alert = findAlert(id);
         return toResponse(alert);
     }
 
+    @Override
     @Transactional(readOnly = true)
     public List<AuditTrailDTO> getAuditTrail(Long alertId) {
         return auditTrailRepository.findByAlertIdOrderByCreatedAtAsc(alertId)
                 .stream().map(this::toAuditDto).toList();
     }
 
+    @Override
     @Transactional
     public AlertDTO.Response forwardAlert(Long id, AlertDTO.ActionRequest request, String operator) {
         Alert alert = findAlert(id);
         assertStatus(alert, Alert.AlertStatus.OPEN, "Can only forward OPEN alerts");
 
         alert.setStatus(Alert.AlertStatus.FORWARDED);
-        alert.setAssignedTo(request.getAssignedTo() != null ? request.getAssignedTo() : "Investigation Team");
+        alert.setAssignedTo(request.getAssignedTo() != null
+                ? request.getAssignedTo() : "Investigation Team");
         alert.setUpdatedAt(LocalDateTime.now());
         Alert saved = alertRepository.save(alert);
 
@@ -81,6 +94,7 @@ public class AlertService {
         return toResponse(saved);
     }
 
+    @Override
     @Transactional
     public AlertDTO.Response dismissAlert(Long id, AlertDTO.ActionRequest request, String operator) {
         Alert alert = findAlert(id);
@@ -95,6 +109,7 @@ public class AlertService {
         return toResponse(saved);
     }
 
+    @Override
     @Transactional
     public AlertDTO.Response closeAlert(Long id, AlertDTO.ActionRequest request, String operator) {
         Alert alert = findAlert(id);
@@ -111,6 +126,7 @@ public class AlertService {
         return toResponse(saved);
     }
 
+    @Override
     @Transactional(readOnly = true)
     public AlertDTO.StatsResponse getStats() {
         long total = alertRepository.count();
@@ -135,12 +151,14 @@ public class AlertService {
                 .build();
     }
 
+    @Override
     @Transactional(readOnly = true)
     public List<AlertDTO.Response> getForwardedAlerts() {
-        Pageable pageable = PageRequest.of(0, 1000, Sort.by("createdAt").descending());
-        Page<Alert> result = alertRepository.findByStatus(Alert.AlertStatus.FORWARDED, pageable);
-        return result.getContent().stream().map(this::toResponse).toList();
+        return alertRepository.findByStatus(Alert.AlertStatus.FORWARDED, 0, 1000)
+                .stream().map(this::toResponse).toList();
     }
+
+    // ── Private helpers ────────────────────────────────────────────────────────
 
     private Alert findAlert(Long id) {
         return alertRepository.findById(id)

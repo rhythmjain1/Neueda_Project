@@ -3,7 +3,7 @@ package com.neueda.tms.service;
 import com.neueda.tms.dto.RuleDTO;
 import com.neueda.tms.model.MonitoringRule;
 import com.neueda.tms.repository.MonitoringRuleRepository;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,21 +12,28 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 @Service
-@RequiredArgsConstructor
-public class RuleService {
+public class RuleService implements IRuleService {
 
     private final MonitoringRuleRepository ruleRepository;
 
+    @Autowired
+    public RuleService(MonitoringRuleRepository ruleRepository) {
+        this.ruleRepository = ruleRepository;
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<RuleDTO.Response> getAllRules() {
         return ruleRepository.findAll().stream().map(this::toResponse).toList();
     }
 
+    @Override
     @Transactional(readOnly = true)
     public RuleDTO.Response getRule(Long id) {
         return toResponse(findRule(id));
     }
 
+    @Override
     @Transactional
     public RuleDTO.Response updateRule(Long id, RuleDTO.UpdateRequest request) {
         MonitoringRule rule = findRule(id);
@@ -41,6 +48,8 @@ public class RuleService {
 
         return toResponse(ruleRepository.save(rule));
     }
+
+    // ── Private helpers ────────────────────────────────────────────────────────
 
     private MonitoringRule findRule(Long id) {
         return ruleRepository.findById(id)

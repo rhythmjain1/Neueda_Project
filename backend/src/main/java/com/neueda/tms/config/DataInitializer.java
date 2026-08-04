@@ -2,8 +2,8 @@ package com.neueda.tms.config;
 
 import com.neueda.tms.model.*;
 import com.neueda.tms.repository.*;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -14,17 +14,25 @@ import java.util.Map;
 
 /**
  * Seeds the database with:
- * 1. Default admin user (admin / admin123) - change in production via env vars
+ * 1. Default admin user (admin / admin123) — change in production via env vars
  * 2. All 6 monitoring rules with default parameter values
  */
 @Component
-@RequiredArgsConstructor
 @Slf4j
 public class DataInitializer implements CommandLineRunner {
 
     private final UserRepository userRepository;
     private final MonitoringRuleRepository ruleRepository;
     private final PasswordEncoder passwordEncoder;
+
+    @Autowired
+    public DataInitializer(UserRepository userRepository,
+                           MonitoringRuleRepository ruleRepository,
+                           PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.ruleRepository = ruleRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     @Override
     public void run(String... args) {
@@ -87,8 +95,8 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private MonitoringRule buildRule(String code, String name, String desc,
-                                      MonitoringRule.RuleSeverity severity,
-                                      Map<String, Object> params) {
+                                     MonitoringRule.RuleSeverity severity,
+                                     Map<String, Object> params) {
         Map<String, Object> paramsCopy = new HashMap<>(params);
         return MonitoringRule.builder()
                 .ruleCode(code)

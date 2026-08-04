@@ -2,38 +2,51 @@ package com.neueda.tms.service;
 
 import com.neueda.tms.dto.*;
 import com.neueda.tms.model.Alert;
-import com.neueda.tms.repository.*;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import com.neueda.tms.model.AlertAuditTrail;
+import com.neueda.tms.repository.AlertAuditTrailRepository;
+import com.neueda.tms.repository.AlertRepository;
+import com.neueda.tms.repository.TransactionRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 @Service
-@RequiredArgsConstructor
-public class ReportService {
+public class ReportService implements IReportService {
 
     private final TransactionRepository transactionRepository;
     private final AlertRepository alertRepository;
     private final AlertAuditTrailRepository auditTrailRepository;
 
+    @Autowired
+    public ReportService(TransactionRepository transactionRepository,
+                         AlertRepository alertRepository,
+                         AlertAuditTrailRepository auditTrailRepository) {
+        this.transactionRepository = transactionRepository;
+        this.alertRepository = alertRepository;
+        this.auditTrailRepository = auditTrailRepository;
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public PageResponse<TransactionDTO.Response> getTransactionReport(
             LocalDateTime fromDate, LocalDateTime toDate, int page, int size) {
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        var result = transactionRepository.searchTransactions(
-                null, null, null, null, fromDate, toDate, null, null, pageable);
+        int offset = page * size;
+        var content = transactionRepository.searchTransactions(
+                null, null, null, null, fromDate, toDate, null, null,
+                offset, size, "created_at", "desc");
+
+        long totalElements = transactionRepository.countSearchTransactions(
+                null, null, null, null, fromDate, toDate, null, null);
+
+        long totalPages = (totalElements + size - 1) / size;
 
         return PageResponse.<TransactionDTO.Response>builder()
-                .content(result.getContent().stream().map(t -> TransactionDTO.Response.builder()
+                .content(content.stream().map(t -> TransactionDTO.Response.builder()
                         .id(t.getId())
                         .transactionRef(t.getTransactionRef())
                         .accountId(t.getAccountId())
@@ -47,15 +60,16 @@ public class ReportService {
                         .createdAt(t.getCreatedAt())
                         .alertsGenerated(0)
                         .build()).toList())
-                .pageNumber(result.getNumber())
-                .pageSize(result.getSize())
-                .totalElements(result.getTotalElements())
-                .totalPages(result.getTotalPages())
-                .first(result.isFirst())
-                .last(result.isLast())
+                .pageNumber(page)
+                .pageSize(size)
+                .totalElements(totalElements)
+                .totalPages((int) totalPages)
+                .first(page == 0)
+                .last(page >= totalPages - 1)
                 .build();
     }
 
+    @Override
     @Transactional(readOnly = true)
     public PageResponse<AlertDTO.Response> getAlertReport(
             LocalDateTime fromDate, LocalDateTime toDate, String status, int page, int size) {
@@ -65,12 +79,16 @@ public class ReportService {
             statusEnum = Alert.AlertStatus.valueOf(status.toUpperCase());
         }
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<com.neueda.tms.model.Alert> result = alertRepository.searchAlerts(
-                statusEnum, null, fromDate, toDate, null, pageable);
+        int offset = page * size;
+        var content = alertRepository.searchAlerts(
+                statusEnum, null, fromDate, toDate, null,
+                offset, size, "created_at", "desc");
+
+        long totalElements = alertRepository.countSearchAlerts(statusEnum, null, fromDate, toDate, null);
+        long totalPages = (totalElements + size - 1) / size;
 
         return PageResponse.<AlertDTO.Response>builder()
-                .content(result.getContent().stream().map(a -> AlertDTO.Response.builder()
+                .content(content.stream().map(a -> AlertDTO.Response.builder()
                         .id(a.getId())
                         .transactionId(a.getTransaction().getId())
                         .transactionRef(a.getTransaction().getTransactionRef())
@@ -86,39 +104,38 @@ public class ReportService {
                         .createdAt(a.getCreatedAt())
                         .updatedAt(a.getUpdatedAt())
                         .build()).toList())
-                .pageNumber(result.getNumber())
-                .pageSize(result.getSize())
-                .totalElements(result.getTotalElements())
-                .totalPages(result.getTotalPages())
-                .first(result.isFirst())
-                .last(result.isLast())
+                .pageNumber(page)
+                .pageSize(size)
+                .totalElements(totalElements)
+                .totalPages((int) totalPages)
+                .first(page == 0)
+                .last(page >= totalPages - 1)
                 .build();
     }
 
+    @Override
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getAccountAlertReport() {
-        List<Object[]> rawData = alertRepository.countGroupByStatus();
-        List<Map<String, Object>> result = new ArrayList<>();
-        for (Object[] row : rawData) {
-            result.add(Map.of("status", row[0].toString(), "count", row[1]));
-        }
-        return result;
+        return alertRepository.countGroupByStatus();
     }
 
+    @Override
     @Transactional(readOnly = true)
     public PageResponse<AuditTrailDTO> getAuditReport(
             LocalDateTime fromDate, LocalDateTime toDate, String action, int page, int size) {
 
-        com.neueda.tms.model.AlertAuditTrail.AuditAction actionEnum = null;
+        AlertAuditTrail.AuditAction actionEnum = null;
         if (action != null && !action.isBlank()) {
-            actionEnum = com.neueda.tms.model.AlertAuditTrail.AuditAction.valueOf(action.toUpperCase());
+            actionEnum = AlertAuditTrail.AuditAction.valueOf(action.toUpperCase());
         }
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        var result = auditTrailRepository.findAuditReport(fromDate, toDate, actionEnum, pageable);
+        int offset = page * size;
+        var content = auditTrailRepository.findAuditReport(fromDate, toDate, actionEnum, offset, size);
+        long totalElements = auditTrailRepository.countAuditReport(fromDate, toDate, actionEnum);
+        long totalPages = (totalElements + size - 1) / size;
 
         return PageResponse.<AuditTrailDTO>builder()
-                .content(result.getContent().stream().map(t -> AuditTrailDTO.builder()
+                .content(content.stream().map(t -> AuditTrailDTO.builder()
                         .id(t.getId())
                         .alertId(t.getAlert().getId())
                         .transactionId(t.getAlert().getTransaction().getId())
@@ -129,12 +146,12 @@ public class ReportService {
                         .notes(t.getNotes())
                         .createdAt(t.getCreatedAt())
                         .build()).toList())
-                .pageNumber(result.getNumber())
-                .pageSize(result.getSize())
-                .totalElements(result.getTotalElements())
-                .totalPages(result.getTotalPages())
-                .first(result.isFirst())
-                .last(result.isLast())
+                .pageNumber(page)
+                .pageSize(size)
+                .totalElements(totalElements)
+                .totalPages((int) totalPages)
+                .first(page == 0)
+                .last(page >= totalPages - 1)
                 .build();
     }
 }
