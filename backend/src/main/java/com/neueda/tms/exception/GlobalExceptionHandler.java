@@ -50,6 +50,11 @@ public class GlobalExceptionHandler {
         return buildError(HttpStatus.FORBIDDEN, "Access denied", null);
     }
 
+    @ExceptionHandler({java.io.IOException.class, java.nio.channels.ClosedChannelException.class})
+    public void handleClientAbortException(Exception ex) {
+        log.warn("Client disconnected before response could be written: {}", ex.getMessage());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneral(Exception ex) {
         log.error("Unexpected error: {}", ex.getMessage(), ex);
