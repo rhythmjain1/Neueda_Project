@@ -1,10 +1,9 @@
 package com.neueda.tms.service.common;
 
-import com.neueda.tms.repository.auth.UserRepository;
-import com.neueda.tms.repository.rule.MonitoringRuleRepository;
-import com.neueda.tms.repository.rule.MonitoringRule;
 import com.neueda.tms.repository.auth.User;
-import lombok.extern.slf4j.Slf4j;
+import com.neueda.tms.repository.auth.UserRepository;
+import com.neueda.tms.repository.rule.MonitoringRule;
+import com.neueda.tms.repository.rule.MonitoringRuleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -14,13 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Seeds the database with:
- * 1. Default admin user (admin / admin123) — change in production via env vars
- * 2. All 6 monitoring rules with default parameter values
- */
 @Component
-@Slf4j
 public class DataInitializer implements CommandLineRunner {
 
     private final UserRepository userRepository;
@@ -29,8 +22,9 @@ public class DataInitializer implements CommandLineRunner {
 
     @Autowired
     public DataInitializer(UserRepository userRepository,
-                           MonitoringRuleRepository ruleRepository,
-                           PasswordEncoder passwordEncoder) {
+            MonitoringRuleRepository ruleRepository,
+            PasswordEncoder passwordEncoder) {
+
         this.userRepository = userRepository;
         this.ruleRepository = ruleRepository;
         this.passwordEncoder = passwordEncoder;
@@ -38,75 +32,105 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        seedAdminUser();
-        seedMonitoringRules();
+        createAdminUser();
+        createMonitoringRules();
     }
 
-    private void seedAdminUser() {
-        if (!userRepository.existsByUsername("admin")) {
-            User admin = User.builder()
-                    .username("admin")
-                    .passwordHash(passwordEncoder.encode("admin123"))
-                    .role(User.UserRole.ADMIN)
-                    .isActive(true)
-                    .build();
-            userRepository.save(admin);
-            log.info("Default admin user created. CHANGE PASSWORD IN PRODUCTION.");
+    private void createAdminUser() {
+
+        if (userRepository.existsByUsername("admin")) {
+            return;
         }
+
+        User admin = new User();
+        admin.setUsername("admin");
+        admin.setPasswordHash(passwordEncoder.encode("admin123"));
+        admin.setRole(User.UserRole.ADMIN);
+        admin.setIsActive(true);
+
+        userRepository.save(admin);
+
+        System.out.println("Default admin user created.");
     }
 
-    private void seedMonitoringRules() {
+    private void createMonitoringRules() {
+
         List<MonitoringRule> rules = List.of(
-                buildRule("HIGH_AMOUNT", "High Transaction Amount",
+
+                createRule(
+                        "HIGH_AMOUNT",
+                        "High Transaction Amount",
                         "Triggered when transaction amount exceeds the threshold.",
                         MonitoringRule.RuleSeverity.HIGH,
                         Map.of("threshold", 10000)),
 
-                buildRule("RAPID_TRANSACTIONS", "Rapid Transactions",
+                createRule(
+                        "RAPID_TRANSACTIONS",
+                        "Rapid Transactions",
                         "Triggered when same account makes multiple transactions in a short window.",
                         MonitoringRule.RuleSeverity.CRITICAL,
-                        Map.of("maxCount", 5, "windowMinutes", 10)),
+                        Map.of(
+                                "maxCount", 5,
+                                "windowMinutes", 10)),
 
-                buildRule("RESTRICTED_COUNTRY", "Restricted Country",
+                createRule(
+                        "RESTRICTED_COUNTRY",
+                        "Restricted Country",
                         "Triggered when transaction originates from a restricted country.",
                         MonitoringRule.RuleSeverity.CRITICAL,
                         Map.of("countries", List.of("KP"))),
 
-                buildRule("NEW_CUSTOMER_HIGH_AMOUNT", "New Customer High Amount",
+                createRule(
+                        "NEW_CUSTOMER_HIGH_AMOUNT",
+                        "New Customer High Amount",
                         "Triggered when a new customer makes a high-value transaction.",
                         MonitoringRule.RuleSeverity.HIGH,
                         Map.of("threshold", 5000)),
 
-                buildRule("ROUND_AMOUNT", "Round Amount (Structuring)",
-                        "Triggered when transaction amount is suspiciously round (possible structuring).",
+                createRule(
+                        "ROUND_AMOUNT",
+                        "Round Amount (Structuring)",
+                        "Triggered when transaction amount is suspiciously round.",
                         MonitoringRule.RuleSeverity.MEDIUM,
-                        Map.of("divisor", 1000, "minAmount", 1000)),
+                        Map.of(
+                                "divisor", 1000,
+                                "minAmount", 1000)),
 
-                buildRule("ODD_HOURS", "Odd Hours Transaction",
-                        "Triggered when a transaction occurs during unusual hours (default: midnight to 4am).",
+                createRule(
+                        "ODD_HOURS",
+                        "Odd Hours Transaction",
+                        "Triggered when a transaction occurs during unusual hours.",
                         MonitoringRule.RuleSeverity.LOW,
-                        Map.of("startHour", 0, "endHour", 4))
-        );
+                        Map.of(
+                                "startHour", 0,
+                                "endHour", 4)));
 
         for (MonitoringRule rule : rules) {
+
             if (!ruleRepository.existsByRuleCode(rule.getRuleCode())) {
+
                 ruleRepository.save(rule);
-                log.info("Seeded monitoring rule: {}", rule.getRuleCode());
+
+                System.out.println("Added Rule : " + rule.getRuleCode());
             }
         }
     }
 
-    private MonitoringRule buildRule(String code, String name, String desc,
-                                     MonitoringRule.RuleSeverity severity,
-                                     Map<String, Object> params) {
-        Map<String, Object> paramsCopy = new HashMap<>(params);
-        return MonitoringRule.builder()
-                .ruleCode(code)
-                .ruleName(name)
-                .description(desc)
-                .severity(severity)
-                .isActive(true)
-                .parameters(paramsCopy)
-                .build();
+    private MonitoringRule createRule(String code,
+            String name,
+            String description,
+            MonitoringRule.RuleSeverity severity,
+            Map<String, Object> parameters) {
+
+        MonitoringRule rule = new MonitoringRule();
+
+        rule.setRuleCode(code);
+        rule.setRuleName(name);
+        rule.setDescription(description);
+        rule.setSeverity(severity);
+        rule.setIsActive(true);
+        rule.setParameters(new HashMap<>(parameters));
+
+        return rule;
     }
 }
