@@ -24,7 +24,6 @@ public class RestrictedCountryRule implements RuleEvaluator {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public Optional<String> evaluate(Transaction transaction, MonitoringRule rule) {
         List<String> restrictedCountries = getRestrictedCountries(rule);
 

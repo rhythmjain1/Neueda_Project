@@ -1,6 +1,5 @@
 package com.neueda.tms.repository.auth;
 
-import com.neueda.tms.repository.auth.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;

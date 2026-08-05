@@ -1,10 +1,7 @@
 package com.neueda.tms.repository.alert;
 
-import com.neueda.tms.repository.alert.Alert;
-import com.neueda.tms.repository.alert.AlertAuditTrail;
 import com.neueda.tms.repository.transaction.Transaction;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -17,7 +14,6 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * JDBC-based repository for AlertAuditTrail entities.

@@ -1,6 +1,5 @@
 package com.neueda.tms.controller.dashboard;
 
-import com.neueda.tms.controller.dashboard.DashboardStatsDTO;
 import com.neueda.tms.service.dashboard.DashboardService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;

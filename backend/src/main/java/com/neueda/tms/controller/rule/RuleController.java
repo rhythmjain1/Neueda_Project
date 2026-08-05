@@ -1,6 +1,5 @@
 package com.neueda.tms.controller.rule;
 
-import com.neueda.tms.controller.rule.RuleDTO;
 import com.neueda.tms.service.rule.IRuleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;

@@ -1,6 +1,5 @@
 package com.neueda.tms.repository.rule;
 
-import java.util.List;
 import java.util.Map;
 import java.time.LocalDateTime;
 

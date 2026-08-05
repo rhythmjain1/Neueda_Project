@@ -1,7 +1,6 @@
 package com.neueda.tms.controller.transaction;
 
 import com.neueda.tms.controller.common.PageResponse;
-import com.neueda.tms.controller.transaction.TransactionDTO;
 import com.neueda.tms.service.transaction.ITransactionService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;

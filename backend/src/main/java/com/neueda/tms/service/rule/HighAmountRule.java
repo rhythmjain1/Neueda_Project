@@ -37,7 +37,6 @@ public class HighAmountRule implements RuleEvaluator {
 
     @Override
     public Alert.AlertSeverity getSeverity(MonitoringRule rule) {
-        BigDecimal threshold = getThreshold(rule);
         // Escalate severity based on how much threshold is exceeded
         return Alert.AlertSeverity.HIGH;
     }

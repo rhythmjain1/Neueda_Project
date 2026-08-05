@@ -1,7 +1,5 @@
 package com.neueda.tms.service.auth;
 
-import com.neueda.tms.service.auth.JwtAuthenticationFilter;
-import com.neueda.tms.service.auth.UserDetailsServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

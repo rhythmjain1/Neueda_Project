@@ -1,7 +1,5 @@
 package com.neueda.tms.controller.auth;
 
-import com.neueda.tms.controller.auth.LoginRequest;
-import com.neueda.tms.controller.auth.LoginResponse;
 import com.neueda.tms.service.auth.JwtTokenProvider;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;

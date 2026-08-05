@@ -7,7 +7,6 @@ import com.neueda.tms.repository.alert.AlertAuditTrail;
 import com.neueda.tms.repository.rule.MonitoringRule;
 import com.neueda.tms.repository.alert.AlertRepository;
 import com.neueda.tms.repository.rule.MonitoringRuleRepository;
-import com.neueda.tms.service.rule.RuleEvaluator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

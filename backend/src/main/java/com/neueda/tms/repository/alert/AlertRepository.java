@@ -1,6 +1,5 @@
 package com.neueda.tms.repository.alert;
 
-import com.neueda.tms.repository.alert.Alert;
 import com.neueda.tms.repository.rule.MonitoringRule;
 import com.neueda.tms.repository.transaction.Transaction;
 import org.springframework.beans.factory.annotation.Autowired;

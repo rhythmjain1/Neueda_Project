@@ -1,7 +1,6 @@
 package com.neueda.tms.controller.rule;
 
 import com.neueda.tms.repository.rule.MonitoringRule;
-import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDateTime;
 import java.util.Map;
